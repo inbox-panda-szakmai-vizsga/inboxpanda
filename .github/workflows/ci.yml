@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed components
+    runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.detect.outputs.components }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Select components from the Git diff
+        id: detect
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: python
+        run: |
+          import json
+          import os
+          import subprocess
+
+          components = ["control-plane", "tenant-plane", "control-site", "tenant-site", "demo-site"]
+          base, head = os.environ["BASE"], os.environ["HEAD"]
+          if base != "0" * 40:
+              if os.environ["GITHUB_EVENT_NAME"] == "pull_request":
+                  base = subprocess.check_output(["git", "merge-base", base, head], text=True).strip()
+              diff = subprocess.check_output(["git", "diff", "--no-renames", "--name-only", "-z", base, head])
+              paths = set(os.fsdecode(diff).split("\0"))
+              if ".github/workflows/ci.yml" not in paths:
+                  roots = {path.partition("/")[0] for path in paths}
+                  components = [name for name in components if name in roots]
+
+          print("Selected components:", ", ".join(components) or "none")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print("components=" + json.dumps(components), file=output)
+
+  check:
+    name: Check ${{ matrix.component }}
+    needs: changes
+    if: needs.changes.outputs.components != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.changes.outputs.components) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.component }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ${{ matrix.component }}/package-lock.json
+
+      - uses: shivammathur/setup-php@v2
+        if: endsWith(matrix.component, '-plane')
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, mbstring
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer, install dependencies and check PHP style
+        if: endsWith(matrix.component, '-plane')
+        run: |
+          composer validate --strict
+          composer install --no-interaction --prefer-dist
+          vendor/bin/pint --test
+
+      - name: Install JavaScript dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run Laravel tests
+        if: endsWith(matrix.component, '-plane')
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          composer test
+
+  result:
+    name: CI passed
+    needs: [changes, check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all selected checks passed
+        env:
+          DETECTION: ${{ needs.changes.result }}
+          COMPONENTS: ${{ needs.changes.outputs.components }}
+          CHECKS: ${{ needs.check.result }}
+        run: |
+          echo "Detection: $DETECTION | Components: $COMPONENTS | Checks: $CHECKS"
+          [[ "$DETECTION" == success ]]
+          if [[ "$COMPONENTS" == '[]' ]]; then
+            [[ "$CHECKS" == skipped ]]
+          else
+            [[ "$CHECKS" == success ]]
+          fi
