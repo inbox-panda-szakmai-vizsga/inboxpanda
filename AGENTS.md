@@ -2,9 +2,11 @@
 
 Az InboxPanda több vállalkozást kiszolgáló, előfizetéses ügyfélszolgálat. A projekt jelenleg tervezési fázisban van. A termék célját és a tervezett ügyfélutat a [README](README.md), a vizsgaremek vállalásait a [tématerv](docs/exam/InboxPanda%20-%20tématerv.docx), a felületek és a háttérfolyamatok kapcsolatait a [rendszerterv](docs/design/spec.excalidraw.svg) írja le.
 
-## Git-ágak elnevezése
 
-Az ágnév formája `<terület>/<rövid-leírás>`. Az előtagot a módosítás területe alapján válaszd meg, például dokumentációnál `docs/ugyfelportal`. Az ágnévben sehol sem szerepelhet AI-eszköz vagy modell neve.
+## Konvenciók, szabályok
+- Minden commit és branch név angol legyen.
+- Minden commit és branch kövesse a [conventional commits](https://www.conventionalcommits.org) specifikációt.
+- Commit üzenetben, branch névben, stb. sehol sem szerepelhet AI-eszköz vagy modell neve.
 
 ## Melyik komponenshez tartozik a feladat?
 
