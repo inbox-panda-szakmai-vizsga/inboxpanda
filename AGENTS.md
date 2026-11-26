@@ -4,7 +4,12 @@ Az InboxPanda több vállalkozást kiszolgáló, előfizetéses ügyfélszolgál
 
 ## Git-ágak elnevezése
 
-Az ágnév formája `<terület>/<rövid-leírás>`. Az előtagot a módosítás területe alapján válaszd meg, például dokumentációnál `docs/ugyfelportal`. Az ágnévben sehol sem szerepelhet AI-eszköz vagy modell neve.
+Az ágnév formája kövesse a "convetional commits" specifikációt, pl `<típus>(<terület>)/<rövid-leírás>`. Az előtagot a módosítás területe alapján válaszd meg, például dokumentációnál `docs(exam)/tématerv átdolgozása`. Az ágnévben sehol sem szerepelhet AI-eszköz vagy modell neve.
+
+## Konvenciók, szabályok
+- Minden commit és branch név angol legyen.
+- Minden commit és branch kövesse a "conventional commits" specifikációt.
+- Commit üzenetben, branch névben, stb. sehol sem szerepelhet AI-eszköz vagy modell neve.
 
 ## Melyik komponenshez tartozik a feladat?
 
